@@ -879,14 +879,35 @@ static dispatch_once_t onceToken;
             BOOL isFormatAllowed = NO;
             
             // 方法1: 通过 PHAssetResource 获取 uniformTypeIdentifier
+            // 检查所有资源类型，不仅仅是 Video 和 FullSizeVideo，因为某些视频可能以其他资源类型存储
             NSArray<PHAssetResource *> *resources = [PHAssetResource assetResourcesForAsset:asset];
             for (PHAssetResource *resource in resources) {
-                if (resource.type == PHAssetResourceTypeVideo || resource.type == PHAssetResourceTypeFullSizeVideo) {
-                    NSString *uniformTypeIdentifier = resource.uniformTypeIdentifier;
-                    if (uniformTypeIdentifier) {
-                        // 检查是否匹配允许的格式
+                NSString *uniformTypeIdentifier = resource.uniformTypeIdentifier;
+                if (uniformTypeIdentifier) {
+                    // 检查是否是视频相关的资源类型
+                    BOOL isVideoResource = (resource.type == PHAssetResourceTypeVideo || 
+                                           resource.type == PHAssetResourceTypeFullSizeVideo ||
+                                           resource.type == PHAssetResourceTypePairedVideo ||
+                                           resource.type == PHAssetResourceTypeAdjustmentData);
+                    
+                    // 或者通过 UTType 判断是否是视频类型
+                    if (!isVideoResource) {
+                        // 检查 uniformTypeIdentifier 是否是视频类型
+                        if ([self isUTType:uniformTypeIdentifier conformsToUTType:(NSString *)kUTTypeMovie]) {
+                            isVideoResource = YES;
+                        }
+                    }
+                    
+                    if (isVideoResource) {
+                        // 检查是否匹配允许的格式（双向检查）
                         for (NSString *allowedUTType in self.allowedVideoFormats) {
+                            // 检查检测到的类型是否符合允许的类型
                             if ([self isUTType:uniformTypeIdentifier conformsToUTType:allowedUTType]) {
+                                isFormatAllowed = YES;
+                                break;
+                            }
+                            // 反向检查：允许的类型是否符合检测到的类型（处理某些特殊情况）
+                            if ([self isUTType:allowedUTType conformsToUTType:uniformTypeIdentifier]) {
                                 isFormatAllowed = YES;
                                 break;
                             }
@@ -905,11 +926,26 @@ static dispatch_once_t onceToken;
                     NSString *possibleUTType = [self UTTypeForFileExtension:fileExtension];
                     if (possibleUTType) {
                         for (NSString *allowedUTType in self.allowedVideoFormats) {
-                            if ([self isUTType:possibleUTType conformsToUTType:allowedUTType]) {
+                            // 双向检查
+                            if ([self isUTType:possibleUTType conformsToUTType:allowedUTType] ||
+                                [self isUTType:allowedUTType conformsToUTType:possibleUTType]) {
                                 isFormatAllowed = YES;
                                 break;
                             }
                         }
+                    }
+                }
+            }
+            
+            // 方法3: 如果前两种方法都失败，且允许的格式中包含通用视频类型，则允许选择
+            // 这样可以避免因为无法识别格式而错误地拒绝某些视频
+            if (!isFormatAllowed) {
+                for (NSString *allowedUTType in self.allowedVideoFormats) {
+                    // 如果允许的类型是通用视频类型（public.movie），则允许所有视频
+                    if ([allowedUTType isEqualToString:(NSString *)kUTTypeMovie] ||
+                        [allowedUTType isEqualToString:@"public.movie"]) {
+                        isFormatAllowed = YES;
+                        break;
                     }
                 }
             }
@@ -949,13 +985,27 @@ static dispatch_once_t onceToken;
         // 方法1: 通过 PHAssetResource 获取 uniformTypeIdentifier
         NSArray<PHAssetResource *> *resources = [PHAssetResource assetResourcesForAsset:asset];
         for (PHAssetResource *resource in resources) {
-            if (resource.type == PHAssetResourceTypeVideo || resource.type == PHAssetResourceTypeFullSizeVideo) {
-                NSString *uniformTypeIdentifier = resource.uniformTypeIdentifier;
-                if (uniformTypeIdentifier) {
+            NSString *uniformTypeIdentifier = resource.uniformTypeIdentifier;
+            if (uniformTypeIdentifier) {
+                // 检查是否是视频相关的资源类型
+                BOOL isVideoResource = (resource.type == PHAssetResourceTypeVideo || 
+                                       resource.type == PHAssetResourceTypeFullSizeVideo ||
+                                       resource.type == PHAssetResourceTypePairedVideo ||
+                                       resource.type == PHAssetResourceTypeAdjustmentData);
+                
+                // 或者通过 UTType 判断是否是视频类型
+                if (!isVideoResource) {
+                    if ([self isUTType:uniformTypeIdentifier conformsToUTType:(NSString *)kUTTypeMovie]) {
+                        isVideoResource = YES;
+                    }
+                }
+                
+                if (isVideoResource) {
                     detectedUTType = uniformTypeIdentifier;
-                    // 检查是否匹配允许的格式
+                    // 检查是否匹配允许的格式（双向检查）
                     for (NSString *allowedUTType in self.allowedVideoFormats) {
-                        if ([self isUTType:uniformTypeIdentifier conformsToUTType:allowedUTType]) {
+                        if ([self isUTType:uniformTypeIdentifier conformsToUTType:allowedUTType] ||
+                            [self isUTType:allowedUTType conformsToUTType:uniformTypeIdentifier]) {
                             isFormatAllowed = YES;
                             break;
                         }
@@ -974,7 +1024,8 @@ static dispatch_once_t onceToken;
                 if (possibleUTType) {
                     detectedUTType = possibleUTType;
                     for (NSString *allowedUTType in self.allowedVideoFormats) {
-                        if ([self isUTType:possibleUTType conformsToUTType:allowedUTType]) {
+                        if ([self isUTType:possibleUTType conformsToUTType:allowedUTType] ||
+                            [self isUTType:allowedUTType conformsToUTType:possibleUTType]) {
                             isFormatAllowed = YES;
                             break;
                         }
@@ -983,9 +1034,21 @@ static dispatch_once_t onceToken;
             }
         }
         
+        // 方法3: 如果前两种方法都失败，且允许的格式中包含通用视频类型，则允许选择
+        if (!isFormatAllowed) {
+            for (NSString *allowedUTType in self.allowedVideoFormats) {
+                if ([allowedUTType isEqualToString:(NSString *)kUTTypeMovie] ||
+                    [allowedUTType isEqualToString:@"public.movie"]) {
+                    isFormatAllowed = YES;
+                    break;
+                }
+            }
+        }
+        
         if (!isFormatAllowed) {
             NSString *formatsString = [self.allowedVideoFormats componentsJoinedByString:@", "];
-            return [NSString stringWithFormat:[NSBundle tz_localizedStringForKey:@"Video format must be one of: %@"], formatsString];
+            NSString *detectedFormat = detectedUTType ? [NSString stringWithFormat:@" (detected: %@)", detectedUTType] : @"";
+            return [NSString stringWithFormat:[NSBundle tz_localizedStringForKey:@"Video format must be one of: %@%@"], formatsString, detectedFormat];
         }
     }
     

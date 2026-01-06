@@ -743,6 +743,14 @@ static CGFloat itemMargin = 5;
             TZImagePickerController *imagePickerVc = (TZImagePickerController *)self.navigationController;
             [imagePickerVc showAlertWithTitle:[NSBundle tz_localizedStringForKey:@"Can not choose both video and photo"]];
         } else {
+            // 检查视频是否可以选择
+            if ([[TZImageManager manager] isAssetCannotBeSelected:model.asset]) {
+                NSString *errorMsg = [[TZImageManager manager] getVideoValidationError:model.asset];
+                if (errorMsg) {
+                    [tzImagePickerVc showAlertWithTitle:errorMsg];
+                }
+                return;
+            }
             TZVideoPlayerController *videoPlayerVc = [[TZVideoPlayerController alloc] init];
             videoPlayerVc.model = model;
             [self.navigationController pushViewController:videoPlayerVc animated:YES];
@@ -1103,6 +1111,13 @@ static CGFloat itemMargin = 5;
             // 不能多选视频的情况下，不选中拍摄的视频
         } else {
             if ([[TZImageManager manager] isAssetCannotBeSelected:assetModel.asset]) {
+                // 如果是视频，显示具体的错误信息
+                if (assetModel.type == TZAssetModelMediaTypeVideo) {
+                    NSString *errorMsg = [[TZImageManager manager] getVideoValidationError:assetModel.asset];
+                    if (errorMsg) {
+                        [tzImagePickerVc showAlertWithTitle:errorMsg];
+                    }
+                }
                 return;
             }
             assetModel.isSelected = YES;

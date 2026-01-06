@@ -347,6 +347,11 @@
 
 - (void)doneButtonClick {
     if ([[TZImageManager manager] isAssetCannotBeSelected:_model.asset]) {
+        // 显示具体的错误信息
+        NSString *errorMsg = [[TZImageManager manager] getVideoValidationError:_model.asset];
+        if (errorMsg) {
+            [self.imagePickerVc showAlertWithTitle:errorMsg];
+        }
         return;
     }
     [self stopTimer];

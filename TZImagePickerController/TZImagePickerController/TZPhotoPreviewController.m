@@ -436,6 +436,13 @@
     if (_tzImagePickerVc.selectedModels.count == 0 && _tzImagePickerVc.minImagesCount <= 0 && _tzImagePickerVc.autoSelectCurrentWhenDone) {
         TZAssetModel *model = _models[self.currentIndex];
         if ([[TZImageManager manager] isAssetCannotBeSelected:model.asset]) {
+            // 如果是视频，显示具体的错误信息
+            if (model.type == TZAssetModelMediaTypeVideo) {
+                NSString *errorMsg = [[TZImageManager manager] getVideoValidationError:model.asset];
+                if (errorMsg) {
+                    [_tzImagePickerVc showAlertWithTitle:errorMsg];
+                }
+            }
             return;
         }
         [self select:_selectButton refreshCount:NO];
@@ -466,6 +473,13 @@
 - (void)originalPhotoButtonClick {
     TZAssetModel *model = _models[self.currentIndex];
     if ([[TZImageManager manager] isAssetCannotBeSelected:model.asset]) {
+        // 如果是视频，显示具体的错误信息
+        if (model.type == TZAssetModelMediaTypeVideo) {
+            NSString *errorMsg = [[TZImageManager manager] getVideoValidationError:model.asset];
+            if (errorMsg) {
+                [_tzImagePickerVc showAlertWithTitle:errorMsg];
+            }
+        }
         return;
     }
     _originalPhotoButton.selected = !_originalPhotoButton.isSelected;
