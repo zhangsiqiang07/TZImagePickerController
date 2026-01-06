@@ -879,6 +879,21 @@ static dispatch_once_t onceToken;
             return YES;
         }
         
+        // 检查视频文件大小限制
+        if (self.maxVideoSize > 0) {
+            NSArray<PHAssetResource *> *resources = [PHAssetResource assetResourcesForAsset:asset];
+            for (PHAssetResource *resource in resources) {
+                if (resource.type == PHAssetResourceTypeVideo || resource.type == PHAssetResourceTypeFullSizeVideo) {
+                    long long fileSize = resource.fileSize;
+                    CGFloat fileSizeMB = fileSize / (1024.0 * 1024.0);
+                    if (fileSizeMB > self.maxVideoSize) {
+                        return YES;
+                    }
+                    break; // 找到视频资源后退出循环
+                }
+            }
+        }
+        
         // 检查视频格式限制（使用UTType）
         if (self.allowedVideoFormats && self.allowedVideoFormats.count > 0) {
             BOOL isFormatAllowed = NO;
@@ -991,6 +1006,21 @@ static dispatch_once_t onceToken;
             return [NSString stringWithFormat:[NSBundle tz_localizedStringForKey:@"Video duration must not exceed %zd:%02zd"], maxMinutes, remainingSeconds];
         } else {
             return [NSString stringWithFormat:[NSBundle tz_localizedStringForKey:@"Video duration must not exceed %zd seconds"], maxSeconds];
+        }
+    }
+    
+    // 检查视频文件大小限制
+    if (self.maxVideoSize > 0) {
+        NSArray<PHAssetResource *> *resources = [PHAssetResource assetResourcesForAsset:asset];
+        for (PHAssetResource *resource in resources) {
+            if (resource.type == PHAssetResourceTypeVideo || resource.type == PHAssetResourceTypeFullSizeVideo) {
+                long long fileSize = resource.fileSize;
+                CGFloat fileSizeMB = fileSize / (1024.0 * 1024.0);
+                if (fileSizeMB > self.maxVideoSize) {
+                    return [NSString stringWithFormat:[NSBundle tz_localizedStringForKey:@"Video file size must not exceed %.1fMB"], self.maxVideoSize];
+                }
+                break; // 找到视频资源后退出循环
+            }
         }
     }
     
