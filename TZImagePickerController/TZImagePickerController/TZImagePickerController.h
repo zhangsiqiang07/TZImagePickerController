@@ -128,6 +128,11 @@
 @property(nonatomic, assign) BOOL allowTakeVideo;
 /// Default value is 10 minutes / 视频最大拍摄时间，默认是10分钟，单位是秒
 @property (assign, nonatomic) NSTimeInterval videoMaximumDuration;
+/// Default is 0, Minimum selectable video duration in seconds / 视频选择的最小时长限制，默认是0，单位是秒
+@property (assign, nonatomic) NSTimeInterval minVideoDuration;
+/// Default is nil, Allowed video formats array using UTType identifiers, e.g. @[(NSString *)kUTTypeMPEG4, (NSString *)kUTTypeQuickTimeMovie] / 允许的视频格式数组（使用UTType标识符），默认是nil（允许所有格式），例如 @[(NSString *)kUTTypeMPEG4, (NSString *)kUTTypeQuickTimeMovie]
+/// Common video UTTypes: kUTTypeMovie, kUTTypeMPEG4, kUTTypeQuickTimeMovie, kUTTypeAVIMovie, kUTTypeMP3
+@property (strong, nonatomic) NSArray<NSString *> *allowedVideoFormats;
 /// Customizing UIImagePickerController's other properties, such as videoQuality / 定制UIImagePickerController的其它属性，比如视频拍摄质量videoQuality
 @property (nonatomic, copy) void(^uiImagePickerControllerSettingBlock)(UIImagePickerController *imagePickerController);
 

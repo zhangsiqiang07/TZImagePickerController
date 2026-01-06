@@ -10,6 +10,9 @@
 #import "TZAssetModel.h"
 #import "TZImagePickerController.h"
 #import <MobileCoreServices/MobileCoreServices.h>
+#if __has_include(<UniformTypeIdentifiers/UniformTypeIdentifiers.h>)
+#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
+#endif
 
 @interface TZImageManager ()
 #pragma clang diagnostic push
@@ -859,9 +862,184 @@ static dispatch_once_t onceToken;
 - (BOOL)isAssetCannotBeSelected:(PHAsset *)asset {
     if ([self.pickerDelegate respondsToSelector:@selector(isAssetCanBeSelected:)]) {
         BOOL canSelectAsset = [self.pickerDelegate isAssetCanBeSelected:asset];
-        return !canSelectAsset;
+        if (!canSelectAsset) {
+            return YES;
+        }
     }
+    
+    // 检查视频时长和格式限制
+    if (asset.mediaType == PHAssetMediaTypeVideo) {
+        // 检查视频最小时长限制
+        if (self.minVideoDuration > 0 && asset.duration < self.minVideoDuration) {
+            return YES;
+        }
+        
+        // 检查视频格式限制（使用UTType）
+        if (self.allowedVideoFormats && self.allowedVideoFormats.count > 0) {
+            BOOL isFormatAllowed = NO;
+            
+            // 方法1: 通过 PHAssetResource 获取 uniformTypeIdentifier
+            NSArray<PHAssetResource *> *resources = [PHAssetResource assetResourcesForAsset:asset];
+            for (PHAssetResource *resource in resources) {
+                if (resource.type == PHAssetResourceTypeVideo || resource.type == PHAssetResourceTypeFullSizeVideo) {
+                    NSString *uniformTypeIdentifier = resource.uniformTypeIdentifier;
+                    if (uniformTypeIdentifier) {
+                        // 检查是否匹配允许的格式
+                        for (NSString *allowedUTType in self.allowedVideoFormats) {
+                            if ([self isUTType:uniformTypeIdentifier conformsToUTType:allowedUTType]) {
+                                isFormatAllowed = YES;
+                                break;
+                            }
+                        }
+                        if (isFormatAllowed) break;
+                    }
+                }
+            }
+            
+            // 方法2: 如果方法1失败，尝试通过文件名判断（作为后备方案）
+            if (!isFormatAllowed) {
+                NSString *filename = [asset valueForKey:@"filename"];
+                if (filename && filename.length > 0) {
+                    NSString *fileExtension = [[filename pathExtension] lowercaseString];
+                    // 将文件扩展名转换为可能的UTType
+                    NSString *possibleUTType = [self UTTypeForFileExtension:fileExtension];
+                    if (possibleUTType) {
+                        for (NSString *allowedUTType in self.allowedVideoFormats) {
+                            if ([self isUTType:possibleUTType conformsToUTType:allowedUTType]) {
+                                isFormatAllowed = YES;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if (!isFormatAllowed) {
+                return YES;
+            }
+        }
+    }
+    
     return NO;
+}
+
+/// 获取视频验证失败的原因
+- (NSString *)getVideoValidationError:(PHAsset *)asset {
+    if (asset.mediaType != PHAssetMediaTypeVideo) {
+        return nil;
+    }
+    
+    // 检查视频最小时长限制
+    if (self.minVideoDuration > 0 && asset.duration < self.minVideoDuration) {
+        NSInteger minSeconds = (NSInteger)self.minVideoDuration;
+        NSInteger minMinutes = minSeconds / 60;
+        NSInteger remainingSeconds = minSeconds % 60;
+        if (minMinutes > 0) {
+            return [NSString stringWithFormat:[NSBundle tz_localizedStringForKey:@"Video duration must be at least %zd:%02zd"], minMinutes, remainingSeconds];
+        } else {
+            return [NSString stringWithFormat:[NSBundle tz_localizedStringForKey:@"Video duration must be at least %zd seconds"], minSeconds];
+        }
+    }
+    
+    // 检查视频格式限制（使用UTType）
+    if (self.allowedVideoFormats && self.allowedVideoFormats.count > 0) {
+        BOOL isFormatAllowed = NO;
+        NSString *detectedUTType = nil;
+        
+        // 方法1: 通过 PHAssetResource 获取 uniformTypeIdentifier
+        NSArray<PHAssetResource *> *resources = [PHAssetResource assetResourcesForAsset:asset];
+        for (PHAssetResource *resource in resources) {
+            if (resource.type == PHAssetResourceTypeVideo || resource.type == PHAssetResourceTypeFullSizeVideo) {
+                NSString *uniformTypeIdentifier = resource.uniformTypeIdentifier;
+                if (uniformTypeIdentifier) {
+                    detectedUTType = uniformTypeIdentifier;
+                    // 检查是否匹配允许的格式
+                    for (NSString *allowedUTType in self.allowedVideoFormats) {
+                        if ([self isUTType:uniformTypeIdentifier conformsToUTType:allowedUTType]) {
+                            isFormatAllowed = YES;
+                            break;
+                        }
+                    }
+                    if (isFormatAllowed) break;
+                }
+            }
+        }
+        
+        // 方法2: 如果方法1失败，尝试通过文件名判断（作为后备方案）
+        if (!isFormatAllowed) {
+            NSString *filename = [asset valueForKey:@"filename"];
+            if (filename && filename.length > 0) {
+                NSString *fileExtension = [[filename pathExtension] lowercaseString];
+                NSString *possibleUTType = [self UTTypeForFileExtension:fileExtension];
+                if (possibleUTType) {
+                    detectedUTType = possibleUTType;
+                    for (NSString *allowedUTType in self.allowedVideoFormats) {
+                        if ([self isUTType:possibleUTType conformsToUTType:allowedUTType]) {
+                            isFormatAllowed = YES;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        
+        if (!isFormatAllowed) {
+            NSString *formatsString = [self.allowedVideoFormats componentsJoinedByString:@", "];
+            return [NSString stringWithFormat:[NSBundle tz_localizedStringForKey:@"Video format must be one of: %@"], formatsString];
+        }
+    }
+    
+    return nil;
+}
+
+/// 检查一个UTType是否符合另一个UTType（支持继承关系）
+- (BOOL)isUTType:(NSString *)utType conformsToUTType:(NSString *)conformingUTType {
+    if (!utType || !conformingUTType) {
+        return NO;
+    }
+    
+    // 直接匹配
+    if ([utType isEqualToString:conformingUTType]) {
+        return YES;
+    }
+    
+    // 使用 UTTypeConformsTo 检查（iOS 14+）
+    if (@available(iOS 14.0, *)) {
+        UTType *type1 = [UTType typeWithIdentifier:utType];
+        UTType *type2 = [UTType typeWithIdentifier:conformingUTType];
+        if (type1 && type2) {
+            return [type1 conformsToType:type2];
+        }
+    }
+    
+    // iOS 14以下使用 MobileCoreServices 的 UTTypeConformsTo
+    CFStringRef utTypeRef = (__bridge CFStringRef)utType;
+    CFStringRef conformingUTTypeRef = (__bridge CFStringRef)conformingUTType;
+    return UTTypeConformsTo(utTypeRef, conformingUTTypeRef);
+}
+
+/// 根据文件扩展名获取UTType
+- (NSString *)UTTypeForFileExtension:(NSString *)fileExtension {
+    if (!fileExtension || fileExtension.length == 0) {
+        return nil;
+    }
+    
+    // iOS 14+ 使用 UniformTypeIdentifiers
+    if (@available(iOS 14.0, *)) {
+        UTType *type = [UTType typeWithFilenameExtension:fileExtension];
+        if (type) {
+            return type.identifier;
+        }
+    }
+    
+    // iOS 14以下使用 MobileCoreServices
+    CFStringRef utType = UTTypeCreatePreferredIdentifierForTag(kUTTagClassFilenameExtension, (__bridge CFStringRef)fileExtension, NULL);
+    if (utType) {
+        NSString *result = (__bridge_transfer NSString *)utType;
+        return result;
+    }
+    
+    return nil;
 }
 
 #pragma mark - Private Method

@@ -192,6 +192,8 @@
         self.allowTakePicture = YES;
         self.allowTakeVideo = YES;
         self.videoMaximumDuration = 10 * 60;
+        self.minVideoDuration = 0;
+        self.allowedVideoFormats = nil;
         self.sortAscendingByModificationDate = YES;
         self.columnNumber = columnNumber;
         [self configDefaultSetting];
@@ -591,6 +593,16 @@
 - (void)setMinPhotoHeightSelectable:(NSInteger)minPhotoHeightSelectable {
     _minPhotoHeightSelectable = minPhotoHeightSelectable;
     [TZImageManager manager].minPhotoHeightSelectable = minPhotoHeightSelectable;
+}
+
+- (void)setMinVideoDuration:(NSTimeInterval)minVideoDuration {
+    _minVideoDuration = minVideoDuration;
+    [TZImageManager manager].minVideoDuration = minVideoDuration;
+}
+
+- (void)setAllowedVideoFormats:(NSArray<NSString *> *)allowedVideoFormats {
+    _allowedVideoFormats = allowedVideoFormats;
+    [TZImageManager manager].allowedVideoFormats = allowedVideoFormats;
 }
 
 - (void)setHideWhenCanNotSelect:(BOOL)hideWhenCanNotSelect {

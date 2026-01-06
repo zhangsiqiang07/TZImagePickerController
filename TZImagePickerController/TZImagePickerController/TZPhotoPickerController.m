@@ -684,6 +684,13 @@ static CGFloat itemMargin = 5;
             // 2. select:check if over the maxImagesCount / 选择照片,检查是否超过了最大个数的限制
             if (tzImagePickerVc.selectedModels.count < tzImagePickerVc.maxImagesCount) {
                 if ([[TZImageManager manager] isAssetCannotBeSelected:model.asset]) {
+                    // 如果是视频，显示具体的错误信息
+                    if (model.type == TZAssetModelMediaTypeVideo) {
+                        NSString *errorMsg = [[TZImageManager manager] getVideoValidationError:model.asset];
+                        if (errorMsg) {
+                            [tzImagePickerVc showAlertWithTitle:errorMsg];
+                        }
+                    }
                     return;
                 }
                 if (!tzImagePickerVc.allowPreview) {

@@ -46,6 +46,13 @@
 @property (nonatomic, assign) NSInteger minPhotoHeightSelectable;
 @property (nonatomic, assign) BOOL hideWhenCanNotSelect;
 
+/// Minimum selectable video duration in seconds, Default is 0
+/// 视频选择的最小时长限制，默认是0，单位是秒
+@property (nonatomic, assign) NSTimeInterval minVideoDuration;
+/// Allowed video formats array using UTType identifiers, e.g. @[(NSString *)kUTTypeMPEG4, (NSString *)kUTTypeQuickTimeMovie], Default is nil (allow all formats)
+/// 允许的视频格式数组（使用UTType标识符），例如 @[(NSString *)kUTTypeMPEG4, (NSString *)kUTTypeQuickTimeMovie]，默认是nil（允许所有格式）
+@property (strong, nonatomic) NSArray<NSString *> *allowedVideoFormats;
+
 /// Return YES if Authorized 返回YES如果得到了授权
 - (BOOL)authorizationStatusAuthorized;
 - (void)requestAuthorizationWithCompletion:(void (^)(void))completion;
@@ -116,6 +123,9 @@
 
 /// 检查照片能否被选中
 - (BOOL)isAssetCannotBeSelected:(PHAsset *)asset;
+/// 获取视频验证失败的原因，如果不是视频或验证通过则返回nil
+/// Get the reason why video validation failed, returns nil if not a video or validation passed
+- (NSString *)getVideoValidationError:(PHAsset *)asset;
 
 /// 修正图片转向
 - (UIImage *)fixOrientation:(UIImage *)aImage;

@@ -346,6 +346,13 @@
             // 2. if not over the maxImagesCount / 如果没有超过最大个数限制
         } else {
             if ([[TZImageManager manager] isAssetCannotBeSelected:model.asset]) {
+                // 如果是视频，显示具体的错误信息
+                if (model.type == TZAssetModelMediaTypeVideo) {
+                    NSString *errorMsg = [[TZImageManager manager] getVideoValidationError:model.asset];
+                    if (errorMsg) {
+                        [_tzImagePickerVc showAlertWithTitle:errorMsg];
+                    }
+                }
                 return;
             }
             [_tzImagePickerVc addSelectedModel:model];
