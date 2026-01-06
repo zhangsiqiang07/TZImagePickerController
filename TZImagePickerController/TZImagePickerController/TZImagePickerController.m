@@ -193,6 +193,7 @@
         self.allowTakeVideo = YES;
         self.videoMaximumDuration = 10 * 60;
         self.minVideoDuration = 0;
+        self.maxVideoDuration = 0;
         self.allowedVideoFormats = nil;
         self.sortAscendingByModificationDate = YES;
         self.columnNumber = columnNumber;
@@ -598,6 +599,11 @@
 - (void)setMinVideoDuration:(NSTimeInterval)minVideoDuration {
     _minVideoDuration = minVideoDuration;
     [TZImageManager manager].minVideoDuration = minVideoDuration;
+}
+
+- (void)setMaxVideoDuration:(NSTimeInterval)maxVideoDuration {
+    _maxVideoDuration = maxVideoDuration;
+    [TZImageManager manager].maxVideoDuration = maxVideoDuration;
 }
 
 - (void)setAllowedVideoFormats:(NSArray<NSString *> *)allowedVideoFormats {

@@ -874,6 +874,11 @@ static dispatch_once_t onceToken;
             return YES;
         }
         
+        // 检查视频最大时长限制
+        if (self.maxVideoDuration > 0 && asset.duration > self.maxVideoDuration) {
+            return YES;
+        }
+        
         // 检查视频格式限制（使用UTType）
         if (self.allowedVideoFormats && self.allowedVideoFormats.count > 0) {
             BOOL isFormatAllowed = NO;
@@ -974,6 +979,18 @@ static dispatch_once_t onceToken;
             return [NSString stringWithFormat:[NSBundle tz_localizedStringForKey:@"Video duration must be at least %zd:%02zd"], minMinutes, remainingSeconds];
         } else {
             return [NSString stringWithFormat:[NSBundle tz_localizedStringForKey:@"Video duration must be at least %zd seconds"], minSeconds];
+        }
+    }
+    
+    // 检查视频最大时长限制
+    if (self.maxVideoDuration > 0 && asset.duration > self.maxVideoDuration) {
+        NSInteger maxSeconds = (NSInteger)self.maxVideoDuration;
+        NSInteger maxMinutes = maxSeconds / 60;
+        NSInteger remainingSeconds = maxSeconds % 60;
+        if (maxMinutes > 0) {
+            return [NSString stringWithFormat:[NSBundle tz_localizedStringForKey:@"Video duration must not exceed %zd:%02zd"], maxMinutes, remainingSeconds];
+        } else {
+            return [NSString stringWithFormat:[NSBundle tz_localizedStringForKey:@"Video duration must not exceed %zd seconds"], maxSeconds];
         }
     }
     

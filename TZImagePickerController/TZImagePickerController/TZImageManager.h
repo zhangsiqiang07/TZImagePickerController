@@ -49,6 +49,9 @@
 /// Minimum selectable video duration in seconds, Default is 0
 /// 视频选择的最小时长限制，默认是0，单位是秒
 @property (nonatomic, assign) NSTimeInterval minVideoDuration;
+/// Maximum selectable video duration in seconds, Default is 0 (no limit)
+/// 视频选择的最大时长限制，默认是0（不限制），单位是秒
+@property (nonatomic, assign) NSTimeInterval maxVideoDuration;
 /// Allowed video formats array using UTType identifiers, e.g. @[(NSString *)kUTTypeMPEG4, (NSString *)kUTTypeQuickTimeMovie], Default is nil (allow all formats)
 /// 允许的视频格式数组（使用UTType标识符），例如 @[(NSString *)kUTTypeMPEG4, (NSString *)kUTTypeQuickTimeMovie]，默认是nil（允许所有格式）
 @property (strong, nonatomic) NSArray<NSString *> *allowedVideoFormats;
