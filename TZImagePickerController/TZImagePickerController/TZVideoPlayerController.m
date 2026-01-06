@@ -75,20 +75,35 @@
         self.iCloudErrorView.hidden = !iCloudSyncFailed;
         if (!isDegraded && photo) {
             self->_cover = photo;
-            self->_doneButton.enabled = YES;
-            self->_editButton.enabled = YES;
+            // 封面图获取成功后，启用按钮（如果视频也已经加载）
+            if (self->_player) {
+                self->_doneButton.enabled = YES;
+                if (self->_editButton) {
+                    self->_editButton.enabled = YES;
+                }
+            }
         }
     }];
     [[TZImageManager manager] getVideoWithAsset:_model.asset completion:^(AVPlayerItem *playerItem, NSDictionary *info) {
         dispatch_async(dispatch_get_main_queue(), ^{
-            self->_player = [AVPlayer playerWithPlayerItem:playerItem];
-            self->_playerLayer = [AVPlayerLayer playerLayerWithPlayer:self->_player];
-            self->_playerLayer.frame = self.view.bounds;
-            [self.view.layer addSublayer:self->_playerLayer];
-            [self addProgressObserver];
-            [self configPlayButton];
-            [self configBottomToolBar];
-            [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(pausePlayerAndShowNaviBar) name:AVPlayerItemDidPlayToEndTimeNotification object:self->_player.currentItem];
+            BOOL iCloudSyncFailed = !playerItem && [TZCommonTools isICloudSyncError:info[PHImageErrorKey]];
+            self.iCloudErrorView.hidden = !iCloudSyncFailed;
+            
+            if (playerItem) {
+                self->_player = [AVPlayer playerWithPlayerItem:playerItem];
+                self->_playerLayer = [AVPlayerLayer playerLayerWithPlayer:self->_player];
+                self->_playerLayer.frame = self.view.bounds;
+                [self.view.layer addSublayer:self->_playerLayer];
+                [self addProgressObserver];
+                [self configPlayButton];
+                [self configBottomToolBar];
+                // 视频加载成功后，启用按钮（不依赖封面图）
+                self->_doneButton.enabled = YES;
+                if (self->_editButton) {
+                    self->_editButton.enabled = YES;
+                }
+                [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(pausePlayerAndShowNaviBar) name:AVPlayerItemDidPlayToEndTimeNotification object:self->_player.currentItem];
+            }
         });
     }];
 }
@@ -121,9 +136,8 @@
     
     _doneButton = [UIButton buttonWithType:UIButtonTypeCustom];
     _doneButton.titleLabel.font = [UIFont systemFontOfSize:16];
-    if (!_cover) {
-        _doneButton.enabled = NO;
-    }
+    // 按钮默认启用，不依赖封面图（封面图可以在后续异步获取或从视频中生成）
+    _doneButton.enabled = YES;
     [_doneButton addTarget:self action:@selector(doneButtonClick) forControlEvents:UIControlEventTouchUpInside];
     TZImagePickerController *tzImagePickerVc = (TZImagePickerController *)self.navigationController;
     if (tzImagePickerVc) {
@@ -140,9 +154,8 @@
     if (tzImagePickerVc && tzImagePickerVc.allowEditVideo && roundf(self.model.asset.duration) > 1) {
         _editButton = [UIButton buttonWithType:UIButtonTypeCustom];
         _editButton.titleLabel.font = [UIFont systemFontOfSize:16];
-        if (!_cover) {
-            _editButton.enabled = NO;
-        }
+        // 按钮默认启用，不依赖封面图
+        _editButton.enabled = YES;
         [_editButton addTarget:self action:@selector(editButtonClick) forControlEvents:UIControlEventTouchUpInside];
         [_editButton setTitle:tzImagePickerVc.editBtnTitleStr forState:UIControlStateNormal];
         [_editButton setTitleColor:tzImagePickerVc.oKButtonTitleColorNormal forState:UIControlStateNormal];
