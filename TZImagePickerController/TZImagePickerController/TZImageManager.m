@@ -884,10 +884,14 @@ static dispatch_once_t onceToken;
             NSArray<PHAssetResource *> *resources = [PHAssetResource assetResourcesForAsset:asset];
             for (PHAssetResource *resource in resources) {
                 if (resource.type == PHAssetResourceTypeVideo || resource.type == PHAssetResourceTypeFullSizeVideo) {
-                    long long fileSize = resource.fileSize;
-                    CGFloat fileSizeMB = fileSize / (1024.0 * 1024.0);
-                    if (fileSizeMB > self.maxVideoSize) {
-                        return YES;
+                    // 使用 KVC 访问 fileSize 属性（私有属性）
+                    NSNumber *fileSizeNumber = [resource valueForKey:@"fileSize"];
+                    if (fileSizeNumber) {
+                        long long fileSize = [fileSizeNumber longLongValue];
+                        CGFloat fileSizeMB = fileSize / (1024.0 * 1024.0);
+                        if (fileSizeMB > self.maxVideoSize) {
+                            return YES;
+                        }
                     }
                     break; // 找到视频资源后退出循环
                 }
@@ -1014,10 +1018,14 @@ static dispatch_once_t onceToken;
         NSArray<PHAssetResource *> *resources = [PHAssetResource assetResourcesForAsset:asset];
         for (PHAssetResource *resource in resources) {
             if (resource.type == PHAssetResourceTypeVideo || resource.type == PHAssetResourceTypeFullSizeVideo) {
-                long long fileSize = resource.fileSize;
-                CGFloat fileSizeMB = fileSize / (1024.0 * 1024.0);
-                if (fileSizeMB > self.maxVideoSize) {
-                    return [NSString stringWithFormat:[NSBundle tz_localizedStringForKey:@"Video file size must not exceed %.1fMB"], self.maxVideoSize];
+                // 使用 KVC 访问 fileSize 属性（私有属性）
+                NSNumber *fileSizeNumber = [resource valueForKey:@"fileSize"];
+                if (fileSizeNumber) {
+                    long long fileSize = [fileSizeNumber longLongValue];
+                    CGFloat fileSizeMB = fileSize / (1024.0 * 1024.0);
+                    if (fileSizeMB > self.maxVideoSize) {
+                        return [NSString stringWithFormat:[NSBundle tz_localizedStringForKey:@"Video file size must not exceed %.1fMB"], self.maxVideoSize];
+                    }
                 }
                 break; // 找到视频资源后退出循环
             }
