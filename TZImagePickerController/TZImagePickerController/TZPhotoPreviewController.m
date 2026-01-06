@@ -471,6 +471,7 @@
 }
 
 - (void)originalPhotoButtonClick {
+    TZImagePickerController *_tzImagePickerVc = (TZImagePickerController *)self.navigationController;
     TZAssetModel *model = _models[self.currentIndex];
     if ([[TZImageManager manager] isAssetCannotBeSelected:model.asset]) {
         // 如果是视频，显示具体的错误信息
