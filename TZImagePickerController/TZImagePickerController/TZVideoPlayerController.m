@@ -203,6 +203,9 @@
     CMTime currentTime = _player.currentItem.currentTime;
     CMTime durationTime = _player.currentItem.duration;
     if (_player.rate == 0.0f) {
+        NSError *error = nil;
+        [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayback withOptions:AVAudioSessionCategoryOptionDefaultToSpeaker error:&error];
+        [[AVAudioSession sharedInstance] setActive:YES error:&error];
         [[NSNotificationCenter defaultCenter] postNotificationName:@"TZ_VIDEO_PLAY_NOTIFICATION" object:_player];
         if (currentTime.value == durationTime.value) [_player.currentItem seekToTime:CMTimeMake(0, 1)];
         [_player play];
