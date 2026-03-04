@@ -437,6 +437,8 @@ static dispatch_once_t onceToken;
                 resultImage = [self fixOrientation:resultImage];
                 if (completion) completion(resultImage,info,NO);
             }];
+        }else {
+            if (completion) completion(result,info,NO);
         }
     }];
     return imageRequestID;
