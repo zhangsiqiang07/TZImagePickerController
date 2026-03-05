@@ -35,6 +35,13 @@
 }
 
 - (void)setModel:(TZAssetModel *)model {
+    if (self.imageRequestID) {
+        [[PHImageManager defaultManager] cancelImageRequest:self.imageRequestID];
+        self.imageRequestID = 0;
+    }
+    self.imageView.image = nil;
+    [self hideProgressView];
+    
     _model = model;
     self.representedAssetIdentifier = model.asset.localIdentifier;
     int32_t imageRequestID = [[TZImageManager manager] getPhotoWithAsset:model.asset photoWidth:self.tz_width completion:^(UIImage *photo, NSDictionary *info, BOOL isDegraded) {
@@ -80,6 +87,18 @@
         self.assetCellDidSetModelBlock(self, _imageView, _selectImageView, _indexLabel, _bottomView, _timeLength, _videoImgView);
     }
 }
+
+- (void)prepareForReuse {
+    [super prepareForReuse];
+    if (self.imageRequestID) {
+        [[PHImageManager defaultManager] cancelImageRequest:self.imageRequestID];
+        self.imageRequestID = 0;
+    }
+    [self cancelBigImageRequest];
+    self.representedAssetIdentifier = nil;
+    self.imageView.image = nil;
+}
+
 
 - (void)setIndex:(NSInteger)index {
     _index = index;
